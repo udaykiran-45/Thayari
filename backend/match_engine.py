@@ -22,7 +22,7 @@ The score is out of 100, made up of three components:
 
 This keeps things simple while rewarding well-rounded profiles.
 """
-'''
+
 from typing import List, Tuple
 
 
@@ -121,7 +121,7 @@ def score_match(student_skills: List[str], student_cgpa: float, student_branch: 
         "cgpa_eligible": cgpa_eligible,
         "why_this_match": explanation,
     }
-'''
+
 
 
 
@@ -166,7 +166,7 @@ Score is out of 100, composed of three dimensions:
    If student grad year >= job graduation_year_min: full 20 pts, else 0.
    Reason: Freshness of talent matters for entry-level campus hiring.
 """
-
+'''
 from typing import List, Tuple
 
 
@@ -220,4 +220,4 @@ def compute_match(
         why_parts.append("Your graduation year is earlier than preferred for this role.")
 
     why = " ".join(why_parts)
-    return total, matched, missing, why
+    return total, matched, missing, why'''
