@@ -3,9 +3,9 @@ import { useState } from "react";
 const API = "http://localhost:8000";
 
 const SKILL_SUGGESTIONS = [
-  "python", "javascript", "react", "nodejs", "sql", "java",
-  "c++", "machine learning", "docker", "mongodb", "rest api",
-  "html", "css", "numpy", "pandas", "data structures", "algorithms",
+  "Python", "JavaScript", "React", "Node.js", "SQL", "Java",
+  "C++", "Machine Learning", "Docker", "MongoDB", "REST API",
+  "HTML", "CSS", "NumPy", "Pandas", "Data Structures", "Algorithms",
 ];
 
 export default function ProfileForm({ onSuccess }) {
@@ -19,8 +19,13 @@ export default function ProfileForm({ onSuccess }) {
   const [serverError, setServerError] = useState("");
 
   const addSkill = (skill) => {
-    const s = skill.trim().toLowerCase();
-    if (s && !skills.includes(s)) setSkills((prev) => [...prev, s]);
+    const s = skill.trim();
+    if (!s) return;
+    // case insensitive duplicate check
+    const alreadyExists = skills.some((x) => x.toLowerCase() === s.toLowerCase());
+    if (!alreadyExists) {
+      setSkills((prev) => [...prev, s]);
+    }
     setSkillInput("");
   };
 
@@ -32,9 +37,11 @@ export default function ProfileForm({ onSuccess }) {
     if (!form.college.trim()) e.college = "College is required";
     if (!form.branch.trim()) e.branch = "Branch is required";
     const cgpa = parseFloat(form.cgpa);
-    if (isNaN(cgpa) || cgpa < 0 || cgpa > 10) e.cgpa = "CGPA must be between 0 and 10";
+    if (!form.cgpa) e.cgpa = "CGPA is required";
+    else if (isNaN(cgpa) || cgpa < 0 || cgpa > 10) e.cgpa = "CGPA must be between 0 and 10";
     const yr = parseInt(form.graduation_year);
-    if (isNaN(yr) || yr < 2000 || yr > 2035) e.graduation_year = "Enter a valid year";
+    if (!form.graduation_year) e.graduation_year = "Graduation year is required";
+    else if (isNaN(yr) || yr < 2000 || yr > 2035) e.graduation_year = "Enter a valid year";
     if (skills.length === 0) e.skills = "Add at least one skill";
     return e;
   };
@@ -50,7 +57,12 @@ export default function ProfileForm({ onSuccess }) {
       const res = await fetch(`${API}/api/students`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, cgpa: parseFloat(form.cgpa), graduation_year: parseInt(form.graduation_year), skills }),
+        body: JSON.stringify({
+          ...form,
+          cgpa: parseFloat(form.cgpa),
+          graduation_year: parseInt(form.graduation_year),
+          skills,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Something went wrong");
@@ -70,7 +82,7 @@ export default function ProfileForm({ onSuccess }) {
       {serverError && <div className="alert alert-error">{serverError}</div>}
 
       {[
-        { key: "name", label: "Full Name", type: "text", placeholder: "Ananya Sharma" },
+        { key: "name", label: "Full Name", type: "text", placeholder: "Rahul" },
         { key: "college", label: "College", type: "text", placeholder: "IIT Bombay" },
         { key: "branch", label: "Branch", type: "text", placeholder: "Computer Science" },
         { key: "cgpa", label: "CGPA (0–10)", type: "number", placeholder: "8.5" },
@@ -90,39 +102,65 @@ export default function ProfileForm({ onSuccess }) {
 
       <div className="field">
         <label>Skills — press Enter or comma to add</label>
-        <div className="skills-input-wrap" onClick={() => document.getElementById("skill-input").focus()}>
+        <div
+          className="skills-input-wrap"
+          onClick={() => document.getElementById("skill-input").focus()}
+        >
           {skills.map((s) => (
             <span className="skill-tag" key={s}>
               {s}
-              <button onClick={() => removeSkill(s)}>×</button>
+              <button type="button" onClick={() => removeSkill(s)}>×</button>
             </span>
           ))}
           <input
             id="skill-input"
             value={skillInput}
-            placeholder={skills.length === 0 ? "e.g. python, react..." : ""}
+            placeholder={skills.length === 0 ? "e.g. FastAPI, React..." : ""}
             onChange={(e) => setSkillInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addSkill(skillInput); }
-              if (e.key === "Backspace" && !skillInput) setSkills((p) => p.slice(0, -1));
+              if (e.key === "Enter" || e.key === ",") {
+                e.preventDefault();
+                addSkill(e.target.value); // use e.target.value not skillInput
+              }
+              if (e.key === "Backspace" && !skillInput) {
+                setSkills((p) => p.slice(0, -1));
+              }
             }}
           />
         </div>
+
+        {/* quick add suggestion chips */}
         <div style={{ marginTop: "0.5rem", display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
-          {SKILL_SUGGESTIONS.filter((s) => !skills.includes(s)).slice(0, 8).map((s) => (
-            <span key={s} onClick={() => addSkill(s)}
-              style={{ fontSize: "0.75rem", color: "var(--muted)", cursor: "pointer", padding: "0.15rem 0.5rem", border: "1px solid var(--border)", borderRadius: "6px" }}>
+          {SKILL_SUGGESTIONS.filter(
+            (s) => !skills.some((x) => x.toLowerCase() === s.toLowerCase())
+          ).slice(0, 8).map((s) => (
+            <span
+              key={s}
+              onClick={() => addSkill(s)}
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--muted)",
+                cursor: "pointer",
+                padding: "0.15rem 0.5rem",
+                border: "1px solid var(--border)",
+                borderRadius: "6px",
+              }}
+            >
               + {s}
             </span>
           ))}
         </div>
+
         {errors.skills && <div className="error-msg">{errors.skills}</div>}
       </div>
 
       <div className="field">
         <label>About Me (optional)</label>
-        <textarea rows={3} placeholder="A passionate developer who loves building things..." value={form.about_me}
-          onChange={(e) => setForm((f) => ({ ...f, about_me: e.target.value }))} />
+        <textarea
+          rows={3}
+          value={form.about_me}
+          onChange={(e) => setForm((f) => ({ ...f, about_me: e.target.value }))}
+        />
       </div>
 
       <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
